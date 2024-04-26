@@ -1,0 +1,31 @@
+ WITH CategorizedSales AS ( -- creates tenporary table
+ SELECT
+     CASE
+         WHEN i.ItemName LIKE '%Helmet%' THEN 'Helmet' -- names must be in given format
+         WHEN i.ItemName LIKE '%Bike%' THEN 'Bike'
+         WHEN i.ItemName LIKE '%Gloves%' THEN 'Gloves'
+         ELSE 'Other'
+     END AS Category, -- creates categories - helmet, bike, gloves, other
+     c.CustomerName,
+     s.UnitPrice * s.Quantity AS Sales
+ FROM Sales.Fact_Sales s
+ JOIN Sales.Dim_Customer c
+ ON s.CustomerID = c.CustomerID
+ JOIN Sales.Dim_Item i
+ ON s.ItemID = i.ItemID
+ WHERE YEAR(s.OrderDate) = 2021
+ ),
+ RankedSales AS (
+     SELECT
+         Category,
+         CustomerName,
+         SUM(Sales) AS TotalSales,
+         ROW_NUMBER() OVER (PARTITION BY Category ORDER BY SUM(Sales) DESC) AS SalesRank -- creates ranking based on row numbers, restart of ranking in each category, same sales continue with ranking
+     FROM CategorizedSales
+     WHERE Category IN ('Helmet', 'Bike', 'Gloves')
+     GROUP BY Category, CustomerName
+ )
+ SELECT Category, CustomerName, TotalSales
+ FROM RankedSales
+ WHERE SalesRank = 1
+ ORDER BY TotalSales DESC;
