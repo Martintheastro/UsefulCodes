@@ -1,3 +1,4 @@
+ -- stored procedure to create dimensional tables from the staging fact table using distinct
  CREATE OR ALTER PROCEDURE Sales.LoadDataFromStaging (@OrderYear INT)
  AS
  BEGIN
@@ -30,3 +31,4 @@
      FROM [Sales].[Staging_Sales]
      WHERE YEAR(OrderDate) = @OrderYear;
  END
+
