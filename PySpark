@@ -1,0 +1,8 @@
+
+# Creating Pivot table, grouping by "ByuingGroup" and columns will be "Category"
+df=spark.read.table("dimension_customer")\
+    .groupBy("BuyingGroup")\
+    .pivot("Category")\
+    .count()
+
+display(df)
