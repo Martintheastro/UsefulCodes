@@ -6,3 +6,9 @@ df=spark.read.table("dimension_customer")\
     .count()
 
 display(df)
+
+###################################################################################
+
+df = spark.sql("SELECT * FROM ShortcutExercise.dimension_customer WHERE Category <> 'Novelty Shop' LIMIT 1000") 
+
+display(df)
