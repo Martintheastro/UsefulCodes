@@ -1,0 +1,4 @@
+--Copy data from the public Azure storage account to the dbo.fact_sale table.
+COPY INTO [dbo].[fact_sale]
+FROM 'https://azuresynapsestorage.blob.core.windows.net/sampledata/WideWorldImportersDW/tables/fact_sale.parquet'
+WITH (FILE_TYPE = 'PARQUET');
