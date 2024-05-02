@@ -12,3 +12,14 @@ display(df)
 df = spark.sql("SELECT * FROM ShortcutExercise.dimension_customer WHERE Category <> 'Novelty Shop' LIMIT 1000") 
 
 display(df)
+
+#create temporary view in PySpark and load it using spark.sql:
+df=spark.read.table("dimension_customer")\
+    .groupBy("BuyingGroup")\
+    .pivot("Category")\
+    .count()\
+    .withColumnRenamed("Novelty Shop","NoveltyShop")\
+    .createOrReplaceTempView("BuyingGroupPivot") # here you create temp view, which can act like view in DB and than you can load data from it
+
+result = spark.sql("SELECT BuyingGroup, NoveltyShop FROM BuyingGroupPivot")
+result.show()
