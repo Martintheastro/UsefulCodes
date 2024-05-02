@@ -32,6 +32,9 @@
      WHERE YEAR(OrderDate) = @OrderYear;
  END
 
+--create another query and run:
+EXEC  [Sales].[LoadDataFromStaging];
+
 --Another stored procedure:
 -Drop the stored procedure if it already exists.
 DROP PROCEDURE IF EXISTS [dbo].[populate_aggregate_sale_by_city]
@@ -79,4 +82,5 @@ BEGIN
         DC.[StateProvince], 
         DC.[City];
 END
-
+--------------------------------------------------------------------------------------------
+EXEC [dbo].[populate_aggregate_sale_by_city];
