@@ -23,3 +23,12 @@ df=spark.read.table("dimension_customer")\
 
 result = spark.sql("SELECT BuyingGroup, NoveltyShop FROM BuyingGroupPivot")
 result.show()
+#####################################################################################
+
+import ipywidgets as widgets
+
+# slider = widgets.IntSlider()
+# display(slider)
+
+dropdown = widgets.Dropdown()
+display(dropdown)
