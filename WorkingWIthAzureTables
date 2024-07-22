@@ -1,0 +1,97 @@
+# CODE TO GET UNIQUE VALUES FROM ONE COLUMN INTO ARRAY FOR FILTERING PURPOSE
+# be careful of the loading limits
+df = spark.sql("SELECT * FROM DataflowsStagingLakehouse1.ItemMasterTOP100") # LIMIT 1000")
+
+# Take Dates from DataFrame:
+import numpy as np
+import pyspark.pandas as ps
+# change to panda DataFrame:
+df = ps.DataFrame(df)
+# print(df)
+
+# Remove duplicates from Column1 - Date to have uniqe dates, change to Column1
+df = df.drop_duplicates(subset=['Timestamp'])
+print(df)
+# Remove all columns to keep just the first with dates, change to [1:]u
+df = df.drop(df.columns[1:], axis=1)
+print(df)
+
+# Transform values in column to an array (use only when is expected to be small), change to column1
+a = df['Timestamp'].to_numpy()
+print(a)
+#####################################################################################################################################
+# Code to create dataframes for each date
+
+import numpy as np
+from pyspark.sql.functions import *
+import pyspark.pandas as ps
+import pandas as pd
+
+
+# Load data again to filter by Column and count blanks:
+df = spark.sql("SELECT * FROM DataflowsStagingLakehouse1.ItemMasterTOP100") # LIMIT 1000")
+s3 = "ItemMaster"
+
+# FOR EACH DATE IN THE TABLE:
+for x in a:
+    
+    # Filter the date in the table:
+    filtered_df = df.filter(df['Timestamp']==x)
+    
+    # Count blanks for each row in the table:
+    count_df = filtered_df.select([count(when(col(c)=="",c)).alias(c) 
+                    for c in filtered_df.columns])
+    count_df = count_df.toPandas()
+     
+    # Transpose the dataframe, it is 1 row table, which has only 1 index, that is why we cannot use stack():
+    stack_df = count_df.reset_index().melt(id_vars='index', value_name='BlankCount') 
+    # display(stack_df)
+
+    # Create new column "ReportDate" and "TableName", values in this column are equal to date filtered ans s3 variable:
+    stack_df['ReportDate'] = x
+    stack_df['TableName'] = s3
+    
+    # display(stack_df)
+    # Change the name of the column where we have column names from the table for counts:
+    stack_df = stack_df.rename(columns = {'variable':'ColumnName'})
+    
+
+    # delete the duplicate index column, which comes from melt() function:
+    stack_df = stack_df.drop(stack_df.columns[0], axis=1)
+
+    # display(stack_df)
+
+    # Create spark dataframe to be able to save it as delta table in lakehouse:
+    spark_df = spark.createDataFrame(stack_df)
+    # display(spark_df)
+
+    # When loaded first time, paasblankcount table created:
+    # spark_df.write.format("delta").saveAsTable("PaasBlankCount")
+
+    # Save DataFrame as a Delta Lake table in the Tables section of the default Lakehouse
+    table_name = "paasblankcount"
+    spark_df.write.mode("append").format("delta").save(f"Tables/{table_name}")
+##############################################################################################################################3
+#Iterate through parquet files in the lakehouse folder and load each into dataframe
+
+import os
+from pyspark.sql import SparkSession
+import pandas as pd
+
+spark = SparkSession.builder.appName("DeltaLakehouse").getOrCreate()
+
+# Set the path to the directory containing the Delta Lakehouse files
+pathdir = "/lakehouse/default/Files/"
+pathfolder = "models$f56517c2_002Def1b_002D4e4d_002D84e3_002D2deddfe04130"
+
+path = pathdir + pathfolder
+
+# Get a list of all the files in the directory
+files = os.listdir(path)
+
+# Iterate over each file and read it as a DataFrame
+for file in files:
+   # if file.endswith(".delta"):
+       # df = spark.read.format("delta").load(os.path.join(path, file))
+        # Do something with the DataFrame
+    display(file)
