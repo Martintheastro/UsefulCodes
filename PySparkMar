@@ -1,25 +1,94 @@
-**************** CODE APPLIED AFTER COPY PIPELINE TO ADD TIMESTAMP AND REPORTING OF LOADED ROWS***********************************************************************
+**************** CODE APPLIED AFTER COPY PIPELINE TO ADD TIMESTAMP AND REPORTING OF LOADED ROWS***********************************************************************.
+#######DEFINED IN SET VARIABLE ACTIVITY IN PIPELINE:
+var_TableName = 'no-table'
+var_PipelineID = 'no-id'
+var_PipelineName = 'no-name'
+var_WorkspaceID = 'no-id'
+var_StartTime = 'no-start-time'
+var_EndTime = 'no-end-time'
 
 
 from pyspark.sql.functions import *
 
 # Change the name of tables if necessary: staging table is from pipeline, Silver table is adjusted table, Grouped table is table for teporting and only one for all tables:
-TableNameStaging = ""
-TableNameSilver = ""
-TableNameGrouped = ""
+var_StagingName = "staging_"+var_TableName
+var_TableNameSilver = "lkh_silver_"+var_TableName
+var_TableNameGrouped = "report_dppm_load"
+# var_Timestamp = current_timestamp()
 
-# adding ExtractTimestampGMT to the dataframe with current timestamp and saving the table as silver table:
-df=spark.read.table(TableNameStaging)\
-    .withColumn('ExtractTimestampGMT',current_timestamp())\
-    .write.mode("overwrite").format("delta").save(f"Tables/{TableNameSilver}")
+# reading the staging table from the pipeline and adding ExtractTimestampGMT to the dataframe with current timestamp and saving the table as lkh_silver_ table:
+df=spark.read.table(var_StagingName)\
+    .withColumn('ExtractTimestampUTC',lit(var_StartTime))\
+    .write.mode("overwrite").format("delta").save(f"Tables/{var_TableNameSilver}")
 
-# loading the silver table to gorup by timestamp and count number of rows and also adding name of the table as new column "TableName", renaming "count" column to NumOfRowsLoaded
+# UPDATING REPORTING TABLE
+# loading the silver table to gorup by timestamp and count number of rows and also adding name of the table and timestamps, renaming "count" column to NumOfRowsLoaded
 # and reordering columns with 'selec' function and appending the dataframe as delta table to TableNameGrouped:
-df = spark.read.table(TableNameSilver)\
-    .groupBy("ExtractTimestampGMT")\
+df = spark.read.table(var_TableNameSilver)\
+    .withColumn('ExtractTimestampUTC', to_date('ExtractTimestampUTC'))\
+    .withColumnRenamed('ExtractTimestampUTC','ExtractDate')\
+    .groupBy("ExtractDate")\
     .count()\
-    .withColumn("TableName",lit(TableNameSilver))\
+    .withColumn("TableName",lit(var_TableNameSilver))\
+    .withColumn('PipelineRunID',lit(var_PipelineID))\
+    .withColumn('CopyActivityStartTime',lit(var_StartTime))\
+    .withColumn('CopyActivityEndTime',lit(var_EndTime))\
+    .withColumn('CopyActivityStartTime',date_format('CopyActivityStartTime','HH:mm:ss'))\
+    .withColumn('CopyActivityEndTime',date_format('CopyActivityEndTime','HH:mm:ss'))\
+    .withColumn('CopyActivityStartTime',to_timestamp('CopyActivityStartTime'))\
+    .withColumn('CopyActivityEndTime',to_timestamp('CopyActivityEndTime'))\
+    .withColumn('CopyActivityDuration_sec',unix_timestamp('CopyActivityEndTime')-unix_timestamp('CopyActivityStartTime'))\
+    .withColumn('PipelineName',lit(var_PipelineName))\
+    .withColumn('WorkspaceID',lit(var_WorkspaceID))\
     .withColumnRenamed("count","NumOfRowsLoaded")\
-    .select("ExtractTimestampGMT","TableName","NumOfRowsLoaded")
+    .select("ExtractDate","WorkspaceID","PipelineName","PipelineRunID","TableName","NumOfRowsLoaded","CopyActivityStartTime","CopyActivityEndTime","CopyActivityDuration_sec")
 
-df.write.mode("append").format("delta").partitionBy("ExtractTimestampGMT").save(f"Tables/{TableNameGrouped}")
+df.write.mode("append").format("delta").partitionBy("ExtractDate").save(f"Tables/{var_TableNameGrouped}")
+
+*********************************************************************************************************************************************************************************************************
+***************************************************************************** ### TABLE REPORTING ### ***************************************************************************************************
+from pyspark.sql.functions import *
+TableNames = ["filter_Year_Summary_Opp__c","filter_Volume_Opp__c"]
+results=[]
+for tableName in TableNames:
+    df=spark.read.table(tableName)
+    Mdate=df.agg(max('LastModifiedDate')).collect()[0][0]
+    count=spark.table(tableName).count()
+    results.append((tableName,count,Mdate))
+
+Table1 = 'filter_Volume_Opp__History'    # the table has different date column name
+df_Table1 = spark.read.table(Table1)
+countT1 = df_Table1.count()
+Mdate_T1=df_Table1.agg(max('CreatedDate')).collect()[0][0]
+results.append((Table1,countT1,Mdate_T1))
+
+results_df = spark.createDataFrame(results,["TableName","RowCount",'DateMax'])\
+    .withColumn('RowCount',format_number('RowCount',0))
+results_df.show()
+# shows a table that contains the name of table, row count and max date 
+
+*********************************************************************************************************************************************************************************************************
+******************************************************************** ### FINDING MAX DATE FOR INCREMENTAL REFRESH ### ***********************************************************************************
+
+from pyspark.sql.functions import *
+
+TableNames_modifedDate = ["filter_Year_Summary_Opp__c","filter_Volume_Opp__c"]
+results=[]
+# start_date = '2024-07-01'
+
+for tableName in TableNames_modifedDate:
+    temp_df=spark.read.table(tableName)
+    incr_date=temp_df.agg(max('LastModifiedDate')).collect()[0][0]
+    var_TableName = 'incr_'+tableName
+    filter_df =temp_df.filter(col('LastModifiedDate') >= lit(incr_date)).limit(1)\
+        .write.mode("overwrite").format("delta").save(f"Tables/{var_TableName}")
+
+TableNames_createDate = ['filter_Volume_Opp__History']
+for tableName in TableNames_createDate:
+    temp_df=spark.read.table(tableName)
+    incr_date=temp_df.agg(max('CreatedDate')).collect()[0][0]
+    var_TableName = 'incr_'+tableName
+    filter_df =temp_df.filter(col('CreatedDate') >= lit(incr_date)).limit(1)\
+        .write.mode("overwrite").format("delta").save(f"Tables/{var_TableName}")
+# Saves as a table with only one row which contains the max date found in the data of last refresh
+
