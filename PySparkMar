@@ -18,7 +18,7 @@ var_TableNameGrouped = "report_dppm_load"
 
 # reading the staging table from the pipeline and adding ExtractTimestampGMT to the dataframe with current timestamp and saving the table as lkh_silver_ table:
 df=spark.read.table(var_StagingName)\
-    .withColumn('ExtractTimestampUTC',lit(var_StartTime))\
+    .withColumn('ExtractTimestampUTC',lit(var_StartTime))\   # .withColumn('ExtractTimestampGMT',current_timestamp())\
     .write.mode("overwrite").format("delta").save(f"Tables/{var_TableNameSilver}")
 
 # UPDATING REPORTING TABLE
