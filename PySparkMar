@@ -118,3 +118,41 @@ for table_name in staging_tables:
 results_df = spark.createDataFrame(results,["TableName","RowCount"])\
     .withColumn('RowCount',format_number('RowCount',0))
 results_df.show()
+
+****************************************************************************************************************************************************************************************************************
+************************************************************************ ROW COUNT ADJUSTED ********************************************************************************************************************
+
+# ROW COUNT of staging tables only in the Lakehouse
+
+from pyspark.sql.functions import *
+database_name = " "
+
+# Getting table names from the Lakehouse:
+tables = spark.sql(f"SHOW TABLES IN {database_name}").collect()
+tables=[table["tableName"] for table in tables]
+
+# Filter tables starting with "staging"
+# staging_tables = [table["tableName"] for table in tables if table["tableName"].startswith("staging_")]
+
+results=[]
+
+# Calculate row count for each of the tables and append the results into an array with table name and row count:
+for table_name in tables:
+    # full_table_name=f"{database_name}.{table_name}"
+    # trimmed_table_name=table_name[8:]
+    count=spark.table(table_name).count()
+    results.append((table_name,count))
+    
+# Create dataframe form the array:
+results_df = spark.createDataFrame(results,["TableName","RowCount"])\
+    .withColumn('RowCount',format_number('RowCount',0))
+
+
+# Splitting Table Name to create more readable report of row count in the Lakehouse
+split_col = split(results_df['TableName'], 'SPLITTER')
+trimmed_df = results_df.withColumn('Stage', split_col.getItem(0))\
+    .withColumn('TableName', split_col.getItem(1))\
+    .orderBy(col('TableName').asc())\
+    .select('Stage','TableName','RowCount')
+    
+display(trimmed_df)
