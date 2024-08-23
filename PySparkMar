@@ -91,4 +91,30 @@ for tableName in TableNames_createDate:
     filter_df =temp_df.filter(col('CreatedDate') >= lit(incr_date)).limit(1)\
         .write.mode("overwrite").format("delta").save(f"Tables/{var_TableName}")
 # Saves as a table with only one row which contains the max date found in the data of last refresh
+**************************************************************************************************************************************************************************************************************
+************************************************************************** LIST COLUMNS IN THE DATAFRAME *****************************************************************************************************
+for field in df.schema.fields:
+    print(field.name +" , "+str(field.dataType))
 
+*************************************************************************************************************************************************************************************************************
+************************************************************************ ROW COUNT OF EACH OF THE TABLES IN LAKEHOUSE ***************************************************************************************
+# ROW COUNT of staging tables only in the Lakehouse
+
+from pyspark.sql.functions import *
+database_name = " "
+tables = spark.sql(f"SHOW TABLES IN {database_name}").collect()
+
+# Filter tables starting with "staging"
+staging_tables = [table["tableName"] for table in tables if table["tableName"].startswith("staging_")]
+results=[]
+
+for table_name in staging_tables:
+    full_table_name=f"{database_name}.{table_name}"
+    trimmed_table_name=table_name[8:]
+    count=spark.table(full_table_name).count()
+    results.append((trimmed_table_name,count))
+    
+
+results_df = spark.createDataFrame(results,["TableName","RowCount"])\
+    .withColumn('RowCount',format_number('RowCount',0))
+results_df.show()
