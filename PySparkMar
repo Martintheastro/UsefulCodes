@@ -116,6 +116,7 @@ for table_name in staging_tables:
     
 
 results_df = spark.createDataFrame(results,["TableName","RowCount"])\
+    .orderBy(col('RowCount').asc())\
     .withColumn('RowCount',format_number('RowCount',0))
 results_df.show()
 
