@@ -12,7 +12,7 @@ from pyspark.sql.functions import *
 
 # Change the name of tables if necessary: staging table is from pipeline, Silver table is adjusted table, Grouped table is table for teporting and only one for all tables:
 var_StagingName = "staging_"+var_TableName
-var_TableNameSilver = "lkh_silver_"+var_TableName
+var_TableNameSilver = "silver_"+var_TableName
 var_TableNameGrouped = "report_dppm_load"
 # var_Timestamp = current_timestamp()
 
