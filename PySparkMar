@@ -1,7 +1,7 @@
 **************** CODE APPLIED AFTER COPY PIPELINE TO ADD TIMESTAMP AND REPORTING OF LOADED ROWS***********************************************************************.
 #######DEFINED IN SET VARIABLE ACTIVITY IN PIPELINE:
 var_TableName = 'no-table'
-var_PipelineID = 'no-id'
+var_PipelineRunID = 'no-id'
 var_PipelineName = 'no-name'
 var_WorkspaceID = 'no-id'
 var_StartTime = 'no-start-time'
@@ -30,7 +30,7 @@ df = spark.read.table(var_TableNameSilver)\
     .groupBy("ExtractDate")\
     .count()\
     .withColumn("TableName",lit(var_TableNameSilver))\
-    .withColumn('PipelineRunID',lit(var_PipelineID))\
+    .withColumn('PipelineRunID',lit(var_PipelineRunID))\
     .withColumn('CopyActivityStartTime',lit(var_StartTime))\
     .withColumn('CopyActivityEndTime',lit(var_EndTime))\
     .withColumn('CopyActivityStartTime',date_format('CopyActivityStartTime','HH:mm:ss'))\
