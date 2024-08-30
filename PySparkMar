@@ -1,5 +1,5 @@
 **************** CODE APPLIED AFTER COPY PIPELINE TO ADD TIMESTAMP AND REPORTING OF LOADED ROWS***********************************************************************.
-#######DEFINED IN SET VARIABLE ACTIVITY IN PIPELINE:
+# Variables set in the pipeline:
 var_TableName = 'no-table'
 var_PipelineRunID = 'no-id'
 var_PipelineName = 'no-name'
@@ -10,20 +10,20 @@ var_EndTime = 'no-end-time'
 
 from pyspark.sql.functions import *
 
-# Change the name of tables if necessary: staging table is from pipeline, Silver table is adjusted table, Grouped table is table for teporting and only one for all tables:
+# Change the name of tables if necessary: var_TableNameGrouped table is for reporting purposes:
 var_StagingName = "staging_"+var_TableName
 var_TableNameSilver = "silver_"+var_TableName
 var_TableNameGrouped = "report_dppm_load"
 # var_Timestamp = current_timestamp()
 
-# reading the staging table from the pipeline and adding ExtractTimestampGMT to the dataframe with current timestamp and saving the table as lkh_silver_ table:
+# reading the staging table from the pipeline activity and adding ExtractTimestampUTC column with var_StartTime to the dataframe and saving the table as silver_ table:
 df=spark.read.table(var_StagingName)\
     .withColumn('ExtractTimestampUTC',lit(var_StartTime))\   # .withColumn('ExtractTimestampGMT',current_timestamp())\
     .write.mode("overwrite").format("delta").save(f"Tables/{var_TableNameSilver}")
 
 # UPDATING REPORTING TABLE
-# loading the silver table to gorup by timestamp and count number of rows and also adding name of the table and timestamps, renaming "count" column to NumOfRowsLoaded
-# and reordering columns with 'selec' function and appending the dataframe as delta table to TableNameGrouped:
+# loading the silver table to gorup by timestamp and count number of rows and also adding variables from the pipeline for the reporting
+# and reordering columns with 'select' function and appending the dataframe as delta table to TableNameGrouped. ExtractTimestampUTC is changed to date format only to be able to group by one date:
 df = spark.read.table(var_TableNameSilver)\
     .withColumn('ExtractTimestampUTC', to_date('ExtractTimestampUTC'))\
     .withColumnRenamed('ExtractTimestampUTC','ExtractDate')\
