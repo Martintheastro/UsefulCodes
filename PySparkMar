@@ -29,7 +29,7 @@ df = spark.read.table(var_TableNameSilver)\
     .withColumnRenamed('ExtractTimestampUTC','ExtractDate')\
     .groupBy("ExtractDate")\
     .count()\
-    .withColumn("TableName",lit(var_TableNameSilver))\
+    .withColumn("TableName",lit(var_TableName))\
     .withColumn('PipelineRunID',lit(var_PipelineRunID))\
     .withColumn('CopyActivityStartTime',lit(var_StartTime))\
     .withColumn('CopyActivityEndTime',lit(var_EndTime))\
