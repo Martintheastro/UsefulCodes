@@ -157,3 +157,46 @@ trimmed_df = results_df.withColumn('Stage', split_col.getItem(0))\
     .select('Stage','TableName','RowCount')
     
 display(trimmed_df)
+
+***********************************************************************************************************************************************************************************************************************
+**************************************************** THOUSANDS SEPARATOR ISSUE ****************************************************************************************************************************************
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import split, col, when, length, expr
+
+# MULTIPLE COLUMNS THAT START WITH DAY_
+day_columns = [col_name for col_name in df.columns if col_name.startswith('DAY')]
+
+
+def process_decimal_column(col_name):
+    parts = split(col(col_name), "\.")
+    is_negative = col(col_name).startswith("-")
+    no_decimal = parts.getItem(1).isNull()
+    
+    before_dot = when(is_negative,parts.getItem(0).cast("int") * -1000)\
+                 .otherwise(parts.getItem(0).cast("int") * 1000)
+                 
+    after_dot_value = when(length(parts.getItem(1)) >= 3, parts.getItem(1).substr(1,3).cast("int"))\
+                      .when(length(parts.getItem(1)) == 1, parts.getItem(1).cast("int") * 100)\
+                      .when(length(parts.getItem(1)) == 2, parts.getItem(1).cast("int") * 10)\
+                      .otherwise(parts.getItem(1).cast("int"))
+
+    
+    after_dot = when(is_negative, -1 * after_dot_value).otherwise(after_dot_value)
+    
+    # Combining the before and after dot parts based on negativity
+    result = when(no_decimal, col(col_name)).otherwise(before_dot + after_dot)
+    
+    return result
+
+
+
+# Using a for loop to apply the function to each 'DAY' column
+for col_name in day_columns:
+    df = df.withColumn(col_name + "_processed", process_decimal_column(col_name))
+# Select the modified columns along with any other columns you need
+# df = df.select(*modifications)
+
+# Show the updated DataFrame
+
+display(df)
+
