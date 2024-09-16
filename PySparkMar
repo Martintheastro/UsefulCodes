@@ -19,7 +19,7 @@ var_TableNameGrouped = "report_dppm_load"
 # reading the staging table from the pipeline activity and adding ExtractTimestampUTC column with var_StartTime to the dataframe and saving the table as silver_ table:
 df=spark.read.table(var_StagingName)\
     .withColumn('ExtractTimestampUTC',lit(var_StartTime))\   # .withColumn('ExtractTimestampGMT',current_timestamp())\
-    .write.mode("overwrite").format("delta").save(f"Tables/{var_TableNameSilver}")
+    .write.mode("overwrite").format("delta").option("overwriteSchema", "true").save(f"Tables/{var_TableNameSilver}")
 
 # UPDATING REPORTING TABLE
 # loading the silver table to gorup by timestamp and count number of rows and also adding variables from the pipeline for the reporting
