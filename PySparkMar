@@ -220,7 +220,7 @@ df.withColumn('ExtractTimestampUTC',lit(var_StartTime))\
 
 # UPDATING REPORTING TABLE
 # creating Dataframe from variables and schema:
-
+var_Duration = ""
 report_data=[(var_StartTime,var_WorkspaceID,var_PipelineName,var_PipelineRunID,var_TableName,var_dfCount,var_StartTime,var_EndTime,var_Duration)]
 columns=["ExtractDate","WorkspaceID","PipelineName","PipelineRunID","TableName","NumOfRowsLoaded","CopyActivityStartTime","CopyActivityEndTime","CopyActivityDuration_sec"]
 
