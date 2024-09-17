@@ -200,3 +200,41 @@ for col_name in day_columns:
 
 display(df)
 
+*************************************************************************************************************************************************************************************************************************
+********************************************** NEW CODE FOR CREATING SILVER TABLE IN PIPELINE RUN ***********************************************************************************************************************
+from pyspark.sql.functions import *
+
+# Change the name of tables if necessary: staging table is from pipeline, Silver table is adjusted table, Grouped table is table for teporting and only one for all tables:
+var_StagingName = "staging_HUD_"+var_TableName
+var_TableNameSilver = "silver_HUD_"+var_TableName
+var_TableNameGrouped = "report_HUD_load"
+# var_Timestamp = current_timestamp()
+
+# reading the staging table from the pipeline and adding ExtractTimestampGMT to the dataframe with current timestamp and saving the table as lkh_silver_ table:
+df=spark.read.table(var_StagingName)
+# number of rows loaded:
+var_dfCount = df.count()
+# adding ExtractTimestampUTC to staging table and save it as silver table:
+df.withColumn('ExtractTimestampUTC',lit(var_StartTime))\
+    .write.mode("overwrite").format("delta").save(f"Tables/{var_TableNameSilver}")
+
+# UPDATING REPORTING TABLE
+# creating Dataframe from variables and schema:
+
+report_data=[(var_StartTime,var_WorkspaceID,var_PipelineName,var_PipelineRunID,var_TableName,var_dfCount,var_StartTime,var_EndTime,var_Duration)]
+columns=["ExtractDate","WorkspaceID","PipelineName","PipelineRunID","TableName","NumOfRowsLoaded","CopyActivityStartTime","CopyActivityEndTime","CopyActivityDuration_sec"]
+
+# creating dataframe and adjusting the column format and calculating duration of load:
+df=spark.createDataFrame(report_data,columns)\
+    .withColumn('ExtractDate', to_date('ExtractDate'))\
+    .withColumn('CopyActivityStartTime',date_format('CopyActivityStartTime','HH:mm:ss'))\
+    .withColumn('CopyActivityEndTime',date_format('CopyActivityEndTime','HH:mm:ss'))\
+    .withColumn('CopyActivityStartTime',to_timestamp('CopyActivityStartTime'))\
+    .withColumn('CopyActivityEndTime',to_timestamp('CopyActivityEndTime'))\
+    .withColumn('CopyActivityDuration_sec',unix_timestamp('CopyActivityEndTime')-unix_timestamp('CopyActivityStartTime'))\
+
+# Appending the dataframe to the report table:
+df.write.mode("append").format("delta").partitionBy("ExtractDate").save(f"Tables/{var_TableNameGrouped}")
+
+# Deleting staging table:
+spark.sql(f"DROP TABLE IF EXISTS {var_StagingName}")
