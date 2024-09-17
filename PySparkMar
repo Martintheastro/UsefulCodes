@@ -216,7 +216,7 @@ df=spark.read.table(var_StagingName)
 var_dfCount = df.count()
 # adding ExtractTimestampUTC to staging table and save it as silver table:
 df.withColumn('ExtractTimestampUTC',lit(var_StartTime))\
-    .write.mode("overwrite").format("delta").save(f"Tables/{var_TableNameSilver}")
+    .write.mode("overwrite").format("delta").option("overwriteSchema", "true").save(f"Tables/{var_TableNameSilver}")
 
 # UPDATING REPORTING TABLE
 # creating Dataframe from variables and schema:
