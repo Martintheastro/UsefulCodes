@@ -231,7 +231,7 @@ df=spark.createDataFrame(report_data,columns)\
     .withColumn('CopyActivityEndTime',date_format('CopyActivityEndTime','HH:mm:ss'))\
     .withColumn('CopyActivityStartTime',to_timestamp('CopyActivityStartTime'))\
     .withColumn('CopyActivityEndTime',to_timestamp('CopyActivityEndTime'))\
-    .withColumn('CopyActivityDuration_sec',unix_timestamp('CopyActivityEndTime')-unix_timestamp('CopyActivityStartTime'))\
+    .withColumn('CopyActivityDuration_sec',unix_timestamp('CopyActivityEndTime')-unix_timestamp('CopyActivityStartTime'))
 
 # Appending the dataframe to the report table:
 df.write.mode("append").format("delta").partitionBy("ExtractDate").save(f"Tables/{var_TableNameGrouped}")
