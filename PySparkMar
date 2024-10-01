@@ -238,3 +238,34 @@ df.write.mode("append").format("delta").partitionBy("ExtractDate").save(f"Tables
 
 # Deleting staging table:
 spark.sql(f"DROP TABLE IF EXISTS {var_StagingName}")
+**************************************************************************************************************************************************************************************************************************
+********************************************************* COMPARING MIN AND MAX VALUES OF TWO TABLES IN ONE COLUMN, CUNTING ROWS *****************************************************************************************
+
+from pyspark.sql.functions import *
+
+# comparing stat for two tables (max, min values for date columns; row count) into one report table:
+
+var_ARtable = "staging_HUD_ACCOUNTS_RECEIVABLE_SUBLEDGER_HARMONISED_closed"
+var_INCRtable = "staging_AR_Closed_INCR_Test"
+var_Timestamp = current_timestamp()
+incr_column_name = 'MARC_secondary_reference_HLoadTS'
+
+tables = [var_ARtable,var_INCRtable]
+results=[]
+
+for table_name in tables:
+    ar_df = spark.read.table(table_name).select(incr_column_name) # just loading one columne for each table, we are only interested for this one
+    ar_df = ar_df.withColumn(incr_column_name,to_date(incr_column_name)) # to have column for each table in the same data type
+    minHLoadTS_row = ar_df.agg(min(incr_column_name).alias('MinValue')).first() # finding min value, result is dataframe
+    maxHLoadTS_row = ar_df.agg(max(incr_column_name).alias('MaxValue')).first() # finding max value, result is dataframe
+    min_value=minHLoadTS_row['MinValue'] # turning into value from dataframe
+    max_value=maxHLoadTS_row['MaxValue'] # turning into value from dataframe
+    row_count = ar_df.count() #counting number of rows
+    results.append((table_name,min_value,max_value,row_count)) # appending each result for each table into array
+
+# creating reporting dataframe:
+
+columns_ar = ["TableName","minHLoadTS","maxHLoadTS","RowCount"]
+results_df=spark.createDataFrame(results,columns_ar).withColumn('ReportDate',lit(var_Timestamp))
+
+results_df.write.mode("append").format("delta").save(f"Tables/IncrementalReporting")
