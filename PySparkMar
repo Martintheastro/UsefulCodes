@@ -48,7 +48,7 @@ df.write.mode("append").format("delta").partitionBy("ExtractDate").save(f"Tables
 *********************************************************************************************************************************************************************************************************
 ***************************************************************************** ### TABLE REPORTING ### ***************************************************************************************************
 from pyspark.sql.functions import *
-TableNames = ["filter_Year_Summary_Opp__c","filter_Volume_Opp__c"]
+TableNames = ["",""]
 results=[]
 for tableName in TableNames:
     df=spark.read.table(tableName)
@@ -72,7 +72,7 @@ results_df.show()
 
 from pyspark.sql.functions import *
 
-TableNames_modifedDate = ["filter_Year_Summary_Opp__c","filter_Volume_Opp__c"]
+TableNames_modifedDate = ["",""]
 results=[]
 # start_date = '2024-07-01'
 
@@ -83,7 +83,7 @@ for tableName in TableNames_modifedDate:
     filter_df =temp_df.filter(col('LastModifiedDate') >= lit(incr_date)).limit(1)\
         .write.mode("overwrite").format("delta").save(f"Tables/{var_TableName}")
 
-TableNames_createDate = ['filter_Volume_Opp__History']
+TableNames_createDate = ['']
 for tableName in TableNames_createDate:
     temp_df=spark.read.table(tableName)
     incr_date=temp_df.agg(max('CreatedDate')).collect()[0][0]
@@ -205,9 +205,9 @@ display(df)
 from pyspark.sql.functions import *
 
 # Change the name of tables if necessary: staging table is from pipeline, Silver table is adjusted table, Grouped table is table for teporting and only one for all tables:
-var_StagingName = "staging_HUD_"+var_TableName
-var_TableNameSilver = "silver_HUD_"+var_TableName
-var_TableNameGrouped = "report_HUD_load"
+var_StagingName = "staging_"+var_TableName
+var_TableNameSilver = "silver_"+var_TableName
+var_TableNameGrouped = "report__load"
 # var_Timestamp = current_timestamp()
 
 # reading the staging table from the pipeline and adding ExtractTimestampGMT to the dataframe with current timestamp and saving the table as lkh_silver_ table:
@@ -245,10 +245,10 @@ from pyspark.sql.functions import *
 
 # comparing stat for two tables (max, min values for date columns; row count) into one report table:
 
-var_ARtable = "staging_HUD_ACCOUNTS_RECEIVABLE_SUBLEDGER_HARMONISED_closed"
-var_INCRtable = "staging_AR_Closed_INCR_Test"
+var_ARtable = "staging_"
+var_INCRtable = "staging_"
 var_Timestamp = current_timestamp()
-incr_column_name = 'MARC_secondary_reference_HLoadTS'
+incr_column_name = 'columnName'
 
 tables = [var_ARtable,var_INCRtable]
 results=[]
