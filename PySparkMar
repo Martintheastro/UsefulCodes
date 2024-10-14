@@ -1,52 +1,8 @@
-**************** CODE APPLIED AFTER COPY PIPELINE TO ADD TIMESTAMP AND REPORTING OF LOADED ROWS***********************************************************************.
-# Variables set in the pipeline:
-var_TableName = 'no-table'
-var_PipelineRunID = 'no-id'
-var_PipelineName = 'no-name'
-var_WorkspaceID = 'no-id'
-var_StartTime = 'no-start-time'
-var_EndTime = 'no-end-time'
+##########################################################################################################################################################################################################################
+                                                    THIS IS THE LIST OF USEFUL CODES I USED IN MY WORK. IT IS SORTED IN ASCENDING ORDER, NEWEST CODES ARE AT THE BOTTOM.
+__________________________________________________________________________________________________________________________________________________________________________________________________________________________
 
-
-from pyspark.sql.functions import *
-
-# Change the name of tables if necessary: var_TableNameGrouped table is for reporting purposes:
-var_StagingName = "staging_"+var_TableName
-var_TableNameSilver = "silver_"+var_TableName
-var_TableNameGrouped = "report_dppm_load"
-# var_Timestamp = current_timestamp()
-
-# reading the staging table from the pipeline activity and adding ExtractTimestampUTC column with var_StartTime to the dataframe and saving the table as silver_ table:
-df=spark.read.table(var_StagingName)\
-    .withColumn('ExtractTimestampUTC',lit(var_StartTime))\   # .withColumn('ExtractTimestampGMT',current_timestamp())\
-    .write.mode("overwrite").format("delta").option("overwriteSchema", "true").save(f"Tables/{var_TableNameSilver}")
-
-# UPDATING REPORTING TABLE
-# loading the silver table to gorup by timestamp and count number of rows and also adding variables from the pipeline for the reporting
-# and reordering columns with 'select' function and appending the dataframe as delta table to TableNameGrouped. ExtractTimestampUTC is changed to date format only to be able to group by one date:
-df = spark.read.table(var_TableNameSilver)\
-    .withColumn('ExtractTimestampUTC', to_date('ExtractTimestampUTC'))\
-    .withColumnRenamed('ExtractTimestampUTC','ExtractDate')\
-    .groupBy("ExtractDate")\
-    .count()\
-    .withColumn("TableName",lit(var_TableName))\
-    .withColumn('PipelineRunID',lit(var_PipelineRunID))\
-    .withColumn('CopyActivityStartTime',lit(var_StartTime))\
-    .withColumn('CopyActivityEndTime',lit(var_EndTime))\
-    .withColumn('CopyActivityStartTime',date_format('CopyActivityStartTime','HH:mm:ss'))\
-    .withColumn('CopyActivityEndTime',date_format('CopyActivityEndTime','HH:mm:ss'))\
-    .withColumn('CopyActivityStartTime',to_timestamp('CopyActivityStartTime'))\
-    .withColumn('CopyActivityEndTime',to_timestamp('CopyActivityEndTime'))\
-    .withColumn('CopyActivityDuration_sec',unix_timestamp('CopyActivityEndTime')-unix_timestamp('CopyActivityStartTime'))\ # does not work for midnight times
-    .withColumn('PipelineName',lit(var_PipelineName))\
-    .withColumn('WorkspaceID',lit(var_WorkspaceID))\
-    .withColumnRenamed("count","NumOfRowsLoaded")\
-    .select("ExtractDate","WorkspaceID","PipelineName","PipelineRunID","TableName","NumOfRowsLoaded","CopyActivityStartTime","CopyActivityEndTime","CopyActivityDuration_sec")
-
-df.write.mode("append").format("delta").partitionBy("ExtractDate").save(f"Tables/{var_TableNameGrouped}")
-
-*********************************************************************************************************************************************************************************************************
-***************************************************************************** ### TABLE REPORTING ### ***************************************************************************************************
+****************************************************************************************** ### TABLE REPORTING ### *******************************************************************************************************
 from pyspark.sql.functions import *
 TableNames = ["",""]
 results=[]
@@ -268,3 +224,39 @@ columns_ar = ["TableName","minHLoadTS","maxHLoadTS","RowCount"]
 results_df=spark.createDataFrame(results,columns_ar).withColumn('ReportDate',lit(var_Timestamp))
 
 results_df.write.mode("append").format("delta").save(f"Tables/IncrementalReporting")
+
+**************************************************************************************************************************************************************************************************************************
+****************************************************************************IMPROVED CODE TO CREATE INGESTION REPORTING IN LAKEHOUSE**************************************************************************************
+
+var_TableNameGrouped = 'report_table'
+database_name = "lakehouse name"
+tables = spark.sql(f"SHOW TABLES IN {database_name}").collect()
+
+
+# Filter tables starting with "silver_" - it gets all tables that are in lakehouse and test it if it starts with "silver":
+silver_tables = [table["tableName"] for table in tables if table["tableName"].startswith("silver")]
+results=[]
+
+# for each table collected in results collection, trim the name of the table to remove 'silver_' and get just the original name of the table:
+for table_name in silver_tables:
+    full_table_name=f"{database_name}.{table_name}"
+    trimmed_table_name=table_name[7:]
+  # test the original name of the table from the results collection if it is equal to table name from the pipeline var_TableName:  
+    if trimmed_table_name == var_TableName:
+        
+    
+        var_Duration = "" # variable set to be able to calculate later in the code
+        # counting the rows of the table in the lakehose ( we use silver_ name table to be able to count the rows, because this is how the table is saved in lakehose)
+        var_dfCount=spark.table(table_name).count()
+        report_data=[(var_StartTime,var_WorkspaceID,var_PipelineName,var_PipelineRunID,var_TableName,var_dfCount,var_StartTime,var_EndTime,var_Duration)]
+        columns=["ExtractDate","WorkspaceID","PipelineName","PipelineRunID","TableName","NumOfRowsLoaded","CopyActivityStartTime","CopyActivityEndTime","CopyActivityDuration_sec"]
+
+        # creating dataframe and adjusting the column format and calculating duration of load:
+        df=spark.createDataFrame(report_data,columns)\
+            .withColumn('ExtractDate', to_date('ExtractDate'))\
+            .withColumn('CopyActivityStartTime',col('CopyActivityStartTime').cast('timestamp'))\
+            .withColumn('CopyActivityEndTime',col('CopyActivityEndTime').cast('timestamp'))\
+            .withColumn('CopyActivityDuration_sec',unix_timestamp('CopyActivityEndTime')-unix_timestamp('CopyActivityStartTime')) # works for midnight timestamps
+            # Appending the dataframe to the report table:
+        df.write.mode("append").format("delta").partitionBy("ExtractDate").save(f"Tables/{var_TableNameGrouped}")
+
