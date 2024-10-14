@@ -228,9 +228,9 @@ results_df.write.mode("append").format("delta").save(f"Tables/IncrementalReporti
 **************************************************************************************************************************************************************************************************************************
 ****************************************************************************IMPROVED CODE TO CREATE INGESTION REPORTING IN LAKEHOUSE**************************************************************************************
 
-var_TableNameGrouped = 'report_table'
-database_name = "lakehouse name"
-tables = spark.sql(f"SHOW TABLES IN {database_name}").collect()
+var_TableNameReport = 'report_table'
+var_DatabaseName = "lakehouse name"
+tables = spark.sql(f"SHOW TABLES IN {var_DatabaseName}").collect()
 
 
 # Filter tables starting with "silver_" - it gets all tables that are in lakehouse and test it if it starts with "silver":
@@ -258,5 +258,5 @@ for table_name in silver_tables:
             .withColumn('CopyActivityEndTime',col('CopyActivityEndTime').cast('timestamp'))\
             .withColumn('CopyActivityDuration_sec',unix_timestamp('CopyActivityEndTime')-unix_timestamp('CopyActivityStartTime')) # works for midnight timestamps
             # Appending the dataframe to the report table:
-        df.write.mode("append").format("delta").partitionBy("ExtractDate").save(f"Tables/{var_TableNameGrouped}")
+        df.write.mode("append").format("delta").partitionBy("ExtractDate").save(f"Tables/{var_TableNameReport}")
 
