@@ -228,12 +228,14 @@ results_df.write.mode("append").format("delta").save(f"Tables/IncrementalReporti
 **************************************************************************************************************************************************************************************************************************
 ****************************************************************************IMPROVED CODE TO CREATE INGESTION REPORTING IN LAKEHOUSE**************************************************************************************
 
+# Use when moving data from lakehouse to warehouse (uses silver tables only, no staging)
+
 var_TableNameReport = 'report_table'
 var_DatabaseName = "lakehouse name"
 tables = spark.sql(f"SHOW TABLES IN {var_DatabaseName}").collect()
 
 
-# Filter tables starting with "silver_" - it gets all tables that are in lakehouse and test it if it starts with "silver":
+# Filter tables starting with "silver_" - it collect all tables that are in lakehouse and test it if it starts with "silver":
 silver_tables = [table["tableName"] for table in tables if table["tableName"].startswith("silver")]
 results=[]
 
