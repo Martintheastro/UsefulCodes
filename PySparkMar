@@ -250,6 +250,7 @@ for table_name in silver_tables:
         var_Duration = "" # variable set to be able to calculate later in the code
         # counting the rows of the table in the lakehose ( we use silver_ name table to be able to count the rows, because this is how the table is saved in lakehose)
         var_dfCount=spark.table(table_name).count()
+         # creating Dataframe from variables that belong to the pipeline's var_TableName:
         report_data=[(var_StartTime,var_WorkspaceID,var_PipelineName,var_PipelineRunID,var_TableName,var_dfCount,var_StartTime,var_EndTime,var_Duration)]
         columns=["ExtractDate","WorkspaceID","PipelineName","PipelineRunID","TableName","NumOfRowsLoaded","CopyActivityStartTime","CopyActivityEndTime","CopyActivityDuration_sec"]
 
