@@ -262,4 +262,22 @@ for table_name in silver_tables:
             .withColumn('CopyActivityDuration_sec',unix_timestamp('CopyActivityEndTime')-unix_timestamp('CopyActivityStartTime')) # works for midnight timestamps
             # Appending the dataframe to the report table:
         df.write.mode("append").format("delta").partitionBy("ExtractDate").save(f"Tables/{var_TableNameReport}")
+**********************************************************************************************************************************************************************************************
+*********************************************************************  DAY CHECK CODE ********************************************************************************
+from pyspark.sql.functions import current_date, dayofmonth
+from datetime import datetime
+from pyspark.sql.functions import lit
 
+# Current_day is variable from a function to return the name of the day (Sunday, Monday, Tuesday...)
+
+current_day = datetime.now().strftime('%A')
+
+# this is the array of days in the week, when we want to run the pipeline
+run_days=("Sunday")
+
+# Check if the current day is in the array, which means today is a day to run the pipeline:
+# if today is not the day the else will come which will end in the error (we dont have df defined). The error will is going to stop the pipeline
+if current_day in run_days:
+    print(f"The day is in the the days of run for the month")
+else:
+    df.write.mode("append")
