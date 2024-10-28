@@ -1,0 +1,6 @@
+*****************************************************************************************************************************************************************************************************************************
+------------------------------------------------------------------------------CODE TO LOAD DATA FROM SALESFORCE (USE IN COPY ACTIVITY)---------------------------------------------------------------------------------------
+- use in the Source tab:
+@concat('select SystemModstamp from Volume_Opp__c where SystemModstamp >',formatDateTime(variables('var_WatermarkDate'),'yyyy-MM-ddTHH:mm:ssZ'))
+- you have to name each column
+- variable is for watermark date, must be formatted to date/time
