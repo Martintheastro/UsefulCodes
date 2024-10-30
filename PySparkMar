@@ -281,3 +281,18 @@ if current_day in run_days:
     print(f"The day is in the the days of run for the month")
 else:
     df.write.mode("append")
+
+*************************************************************************************************************************************************************************************************
+********************************************* SOME NICE CODE TO GROUP BY FIELDS BASED ON YEAR, MONTH, DAY TRANSFORMATIONS **************************************************************************
+
+from pyspark.sql.functions import date_format, year, month, dayofmonth, col
+
+df_2=df.withColumn("SystemModstam_hour", date_format("SystemModstamp","HH"))\
+    .withColumn("SystemModstam_year", year(col("SystemModstamp")))\
+    .withColumn("SystemModstam_month", month(col("SystemModstamp")))\
+    .withColumn("SystemModstam_dayofmonth", dayofmonth(col("SystemModstamp")))\
+    .filter((col("SystemModstam_month")>9)&(col("SystemModstam_dayofmonth")>1))\
+    .groupBy("SystemModstam_hour")\
+    .count()
+display(df_2)
+
