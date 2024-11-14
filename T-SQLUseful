@@ -1,0 +1,22 @@
+WITH MaxDates AS (
+    SELECT 'Table1' AS TableName, MAX(HLoadTS) AS MaxDate FROM [dbo].[Table1]
+    UNION ALL
+    SELECT 'Table2'AS TableName, MAX(HLoadTS) AS MaxDate FROM [dbo].[Table2]
+   ....
+
+)
+SELECT TableName, CONVERT(VARCHAR(10), MaxDate, 23) AS MaxDate,
+CASE
+    WHEN MaxDate > DATEADD(DAY,-7, GETDATE()) THEN 'Update daily'
+    ELSE
+    CASE
+        WHEN MaxDate > DATEADD(DAY,-20, GETDATE()) THEN 'Update weekly'
+        ELSE
+        CASE
+            WHEN MaxDate > DATEADD(DAY,-30, GETDATE()) THEN 'Update monthly'
+            ELSE 'One time load'
+            END
+        END
+    END AS 'UpdateFrequency'
+FROM MaxDates
+ORDER BY MaxDate DESC
