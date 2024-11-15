@@ -20,3 +20,18 @@ CASE
     END AS 'UpdateFrequency'
 FROM MaxDates
 ORDER BY MaxDate DESC
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Code that helps identify duplicate records in the silver table:
+WITH GroupId AS (
+    SELECT Id, COUNT(Id) AS Count
+    FROM [dwh_S].[dbo].[silver_SF_]
+    GROUP BY Id
+    ), 
+    TopId AS (
+    SELECT TOP(1) Id FROM GroupId WHERE Count>3
+    )
+SELECT *
+FROM [dwh_].[dbo].[silver_SF_]
+WHERE Id = (SELECT Id FROM TopId)
+-- if there are more SystemModstamps for the same id in Novemeber (when the incremental started) it is problem
