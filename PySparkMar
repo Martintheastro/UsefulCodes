@@ -296,4 +296,26 @@ df_2=df.withColumn("SystemModstam_hour", date_format("SystemModstamp","HH"))\
     .groupBy("SystemModstam_hour")\
     .count()
 display(df_2)
+*******************************************************************************************************************************************************************************************************
+*************************************************** INCREMENTAL REFRESH *******************************************************************************************************************************
 
+# incoming table from the pipeline, that will cause duplicate record:
+append_df=spark.read.table(var_IncomingTable)
+
+# original table to which incoming table will be appended:
+df=spark.read.table(var_MainTable)
+
+# to get simple table with Id and count columns only from the incoming table:
+group_df = append_df.groupBy('Id').count()
+
+# count column will be added to the main sink table and only unique records will be saved in the lakehouse:
+# NULL values in the 'count' column mean, that the 'Id' is not found in the incoming table (we are removing future duplicates, old Ids, that will be replace by new ids)
+
+join_df= df.join(group_df,on='Id',how='left')\
+    .filter(col('count').isNull())\
+    .drop('count')
+
+# to join two dataframes they must have the same columns, we are appending incoming table wit new ids to the original table, where we remoed the old ids:
+join_df=join_df.union(append_df)
+
+# saving the new table:
