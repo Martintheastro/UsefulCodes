@@ -319,3 +319,51 @@ join_df= df.join(group_df,on='Id',how='left')\
 join_df=join_df.union(append_df)
 
 # saving the new table:
+
+*********************************************************************************************************************************************************************************************************
+**************************************************************************************** EXCEL TABLE LOADING ********************************************************************************************
+
+import os,re
+
+def adjust_header(name):
+    # Replace unwanted characters with an empty string
+    new_name=re.sub(r'[\[\]\-\@\.\\]', '', name)
+    new_name2=re.sub(r'%','Percentage',new_name)
+    return re.sub(r'[(\)\ ]','_',new_name2)
+
+
+# Function to convert first row into header
+def use_first_row_as_header(df):
+    # Collect the first row (this is the header row) as a list:
+    first_row = df.first().asDict()
+    
+    # Extract column names from the first row
+    new_columns = list(first_row.values())
+    
+    # Sanitize the new column names
+    new_columns = [adjust_header(col) for col in new_columns]
+    
+    # Create new DataFrame from second row onwards(filter all columns except first):
+    df_without_first = df.rdd.zipWithIndex().filter(lambda x: x[1] > 0).map(lambda x: x[0])
+    
+    # Convert to DataFrame and set new column names
+    new_df = spark.createDataFrame(df_without_first, schema=new_columns)
+    
+    return new_df
+
+# Complete file path
+
+file_name='OnHold'
+var_TableName= 'PortfolioReport_'
+
+file_path=os.path.join('abfss://DS_Qlik@onelake.dfs.fabric.microsoft.com/lkh_QLIK_PMO.Lakehouse/Files/PortfolioReport/', file_name)
+    # Check if path is a file and if it has the .parquet extension
+    
+        # Load the parquet file into a DataFrame
+df = spark.read.parquet(file_path)
+        # Use the first row as the header and sanitize it
+new_df=use_first_row_as_header(df)
+
+        # For demonstration, print the DataFrame schema and show the first few rows
+print(f"Loaded {file_name}")
+new_df.write.mode("overwrite").format("delta").save(f"Tables/{var_TableName}{file_name}")
