@@ -414,3 +414,39 @@ print(f"Loaded {file_name}")
 
 #Save the table
 new_df.write.mode("overwrite").format("delta").save(f"Tables/{var_TableName}{file_name}")
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
+#                                                                                      UNWANTED CHARACTERS VERSION 2                                                                                                       #
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
+import re
+
+unwanted_chars = re.compile(r'[\[\]\-\@\.\/]')
+percentage_sign = re.compile(r'%')
+parens_and_spaces = re.compile(r'[(\)\ ]')
+plus_sign = re.compile(r'\+')
+project_num = re.compile(r'#"')
+
+def adjust_header(column_name):
+    # Remove unwanted characters
+    new_name = unwanted_chars.sub('', column_name)
+    # Replace percentage sign with the word "Percentage"
+    new_name = percentage_sign.sub('Percentage', new_name)
+    # Replace parentheses and spaces with underscores
+    new_name = parens_and_spaces.sub('_', new_name)
+    # Replcace plus sign with "Plus"
+    new_name = plus_sign.sub('_Plus_', new_name)
+    # Replace '#"" sign with "Project_Number"
+    new_name = project_num.sub('Project_Num',new_name)
+    return new_name
+
+
+# Collect the first row (this is the header row) as a list:
+index_df = df.withColumn("index", monotonically_increasing_id())
+index_df=index_df.filter(index_df["index"] == header_row_number).drop("index")
+header_row = index_df.first().asDict()
+# print(header_row)
+
+new_columns = list(header_row.values())
+print(new_columns)
+
+new_columns = [adjust_header(col) for col in new_columns]
+print(new_columns)
