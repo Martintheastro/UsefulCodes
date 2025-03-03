@@ -35,3 +35,13 @@ SELECT *
 FROM [dwh_].[dbo].[silver_SF_]
 WHERE Id = (SELECT Id FROM TopId)
 -- if there are more SystemModstamps for the same id in Novemeber (when the incremental started) it is problem
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#                                                                     DATE TIME INGESTION                                                                                                     #
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+SELECT *, SYSDATETIME() AS ExtractTimestamp FROM dbo.Table
+
+# CREATE DATE TYPE FROM TEXT:
+DATEFROMPARTS(LEFT([DATE_DUE],4),SUBSTRING([DATE_DUE],5,2),RIGHT([DATE_DUE],2)) AS DATE_DUE,
+
+
