@@ -458,3 +458,8 @@ tables = spark.catalog.listTables()
 for table in tables:
     print(f"Optimizing {table.name}")
     spark.sql(f"OPTIMIZE {table.name} VORDER")
+
+columnsA = df_all.columns
+print(columnsA)
+for column in columnsA:
+    df_all.select(column).write.saveAsTable(f"TEST_{column}")
