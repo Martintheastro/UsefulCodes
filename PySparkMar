@@ -466,3 +466,11 @@ for column in columnsA:
 
 from pyspark.sql.functions import regexp_replace
 df_all_c = df_all.withColumn('COLUMN',regexp_replace('COLUMN',r"\\",""))
+
+# removing unwanted characters and keeping just the end of the string:
+df_all_c = df_all.withColumn("MODELO",
+    when(
+        col("MODELO").endswith("+ GDI"),
+        col("MODELO").substr(-3, 3)
+    ).otherwise(col("MODELO"))
+    )
