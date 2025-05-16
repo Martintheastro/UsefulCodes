@@ -463,3 +463,6 @@ columnsA = df_all.columns
 print(columnsA)
 for column in columnsA:
     df_all.select(column).write.saveAsTable(f"TEST_{column}")
+
+from pyspark.sql.functions import regexp_replace
+df_all_c = df_all.withColumn('COLUMN',regexp_replace('COLUMN',r"\\",""))
